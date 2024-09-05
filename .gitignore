@@ -1,0 +1,6 @@
+*.js
+!node_test/index.js
+!bns-browser.js
+!docs/*/*.js
+node_modules/
+.env

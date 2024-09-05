@@ -1,0 +1,293 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>BNS demo</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <script src="../bns-browser.js"></script>
+    <style>
+      #main {
+        grid-template-columns: auto auto;
+      }
+      @media only screen and (max-width: 900px) {
+        #main {
+          grid-template-columns: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <p>Intended to be purely a demo. Tested only on firefox.</p>
+    <span id="address"></span>
+    <div id="start">
+      <p>Click 'Create TLD Account' if you want to issue domain names, and click 'Create Domain Account' if you want to own a domain.</p>
+      <button onclick="create('tld')">Create TLD Account</button>
+      <button onclick="create('domain')">Create Domain Account</button>
+      <p>Enter an existing seed here:</p>
+      <input id="alt-seed" type="text" placeholder="Then click the button above"/>
+      <br><br>
+      <h2>Quick Guide</h2>
+      <ol>
+        <li>Open this site in a second tab</li>
+        <li>In this tab (Domain tab), click "Create Domain Account". Note down the seed and address</li>
+        <li>In the second tab (TLD tab), click "Create TLD Account". Note down the seed and address.</li>
+        <li>Send a Banano to your TLD Account's address</li>
+        <li>On TLD tab, click "Receive"</li>
+        <li>On TLD tab, fill in the "Name (no '.', '"', max 32 chars [32 bytes])" field with "helloworld", fill in the Domain tab's address in the "Send to address:" field and click "Issue domain"</li>
+        <li>Wait until it sends, and open the block explorer link in a new tab, noting the block hash</li>
+        <li>Back to the Domain tab, fill in that block hash into the "Block hash of Domain Transfer:" input</li>
+        <li>Then, in the right hand "Domain Resolver" panel add the TLD tab's address to the "TLD Mapping". Call it "demo"</li>
+        <li>In "TLD name (no dot):", write "demo" and then click "Detect held domain name"</li>
+        <li>It should now say "Name: helloworld" right below "Domain Account Manager". Congratulations! You own a Banano domain name now</li>
+        <li>Fill in your actual main Banano address in "Resolve to address:", and click "Declare address to resolve to", and anyone using your TLD can now turn "helloworld.demo" (or whatever they name your TLD) into your address</li>
+      </ol>
+    </div>
+    <div id="start-2" style="display: none;">
+      <p id="seed-display"></p>
+      <button onclick="seed_proceed()">I have saved the seed (or haven't and don't care if I lose it)</button>
+    </div>
+    <div id="main" style="display: none;">
+      <div id="tld">
+        <h2>TLD Account Manager</h2>
+        <p>Add this address to the mapping (right panel) with whatever name you want. <b>Before issuing, make sure to CHECK what domain names you have already issued (right panel).</b> If you try to issue a domain name you have already issued, it will not work!!! <small>Or, it should not. Please report if it does; that is a bug.</small></p>
+        <p>Oh, also, obviously <b>make sure you've sent some Banano to the address (and clicked the receive button below).</b></p>
+        <button onclick="tld_account.receive()">Receive</button>
+        <br>
+        <label for="issue-name">Name (no '.', '"', max 32 chars [32 bytes]):</label>
+        <input id="issue-name" type="text" maxlength="32"/>
+        <br>
+        <label for="issue-to">Send to address:</label>
+        <input id="issue-to" placeholder="ban_abc..." type="text"/>
+        <br>
+        <button onclick="issue()">Issue domain</button>
+        <a id="issue-link"></a>
+      </div>
+      <div id="domain">
+        <h2>Domain Account Manager</h2>
+        <div id="domain-start">
+          <label for="r-d">Block hash of Domain Transfer:</label>
+          <input id="r-d" type="text"/>
+          <br>
+          <button onclick="domain_account.receive_domain(d.g('r-d').value)">Receive domain</button>
+          <br>
+          <label for="r-tld">TLD name (no dot):</label>
+          <input id="r-tld" type="text"/>
+          <br>
+          <button onclick="get_domain_account_domain()">Detect held domain name</button>
+        </div>
+        <div id="domain-actions" style="display: none;">
+          <p>
+            Name: <span id="found-name"></span>
+            <br>
+            Resolves to address: <span id="found-address"></span>
+            <br>
+            Metadata hash: <span id="found-metadata"></span>
+          </p>
+          <label for="r-mh">Metadata hash:</label>
+          <input id="r-mh" type="text"/>
+          <br>
+          <button onclick="domain_account.declare_domain_metadata(d.g('r-mh').value)">Declare metadata hash</button>
+          <br>
+          <label for="r-a">Resolve to address:</label>
+          <input id="r-a" type="text"/>
+          <br>
+          <button onclick="domain_account.declare_domain_resolve_to(d.g('r-a').value)">Declare address to resolved to</button>
+          <br>
+          <label for="transfer-to">Transfer domain to:</label>
+          <input id="transfer-to" placeholder="ban_abc..." type="text"/>
+          <br>
+          <button onclick="transfer()">Transfer domain</button>
+          <a id="transfer-link"></a>
+        </div>
+      </div>
+      <div id="resolver">
+        <h2>Domain Resolver</h2>
+        <label for="resolve">Name:</label>
+        <input id="resolve" type="text" placeholder="nishina.test"/>
+        <br>
+        <button onclick="resolve()">Resolve domain</button>
+        <br>
+        <div>
+          <span>Domain name: <span id="r-name"></span></span>
+          <br>
+          <span>TLD: <span id="r-tld"></span></span>
+          <br>
+          <span>Burned: <span id="r-burned"></span></span>
+          <br>
+          <span>Resolved Address: <span id="r-addr"></span></span>
+          <br>
+          <span>Metadata Hash: <span id="r-meta"></span></span>
+          <br>
+          <span>History:</span>
+          <br>
+          <textarea id="r-hist" disabled></textarea>
+        </div>
+        <div>
+          <h3>TLD Mapping</h3>
+          <ul id="tld-mapping">
+          </ul>
+          <label for="add-tld">TLD Name (no dot):</label>
+          <input id="add-tld" type="text" placeholder="example"/>
+          <br>
+          <label for="tld-addr">TLD Address:</label>
+          <input id="tld-addr" type="text" placeholder="ban_abcd..."/>
+          <br>
+          <button onclick="add_tld()">Add TLD to mapping</button> <!--no type="button" today-->
+          <br><br>
+          <label for="rem-tld">TLD Name (no dot):</label>
+          <input id="rem-tld" type="text" placeholder="example"/>
+          <br>
+          <button onclick="rem_tld()">Remove TLD from mapping</button>
+        </div>
+        <div>
+          <h3>Issued by TLD</h3>
+          <label for="issue-tld">TLD Name (no dot):</label>
+          <input id="issue-tld" type="text" placeholder="test"/>
+          <br>
+          <button onclick="all_issued()">Find all issued by TLD</button>
+          <ul id="all-issued">
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      //I don't like how const works in js. I wish it prevented property mutation
+      let d = document;
+      d.g = d.getElementById; //I am lazy and this is a demo
+      const bns = window.bns;
+
+      const rpc = new bns.banani.RPC("https://kaliumapi.appditto.com/api"); //for sending cause it does work
+      const rpc2 = new bns.banani.RPC("https://api.banano.trade/proxy", true); //for resolver cause it supports raw account history
+
+      let wallet = bns.banani.Wallet.gen_random_wallet(rpc);
+
+      let mode = false; //true if tld mode
+      let tld_account;
+      let domain_account;
+      let domain_account_domain;
+
+      let tld_mapping = {
+        "test": "ban_3634i9z9m5zj9tmjj4rsn9dtzed1oce3wtphr75o3jsq45739cgwr33kemb7",
+        "mictest": "ban_1dzpfrgi8t4byzmdeidh57p14h5jwbursf1t3ztbmeqnqqdcbpgp9x8j3cw6",
+        //
+      };
+
+      function gen_tld_mapping_list() {
+        let ul = d.g("tld-mapping");
+        ul.innerHTML = "";
+        for (const tld of Object.keys(tld_mapping)) {
+          let li = d.createElement("LI");
+          li.textContent = `.${tld}: ${tld_mapping[tld]}`;
+          ul.appendChild(li);
+        }
+      }
+
+      gen_tld_mapping_list();
+
+      function create(type) {
+        const alt_seed = d.g("alt-seed").value;
+        if (alt_seed) {
+          wallet = new bns.banani.Wallet(rpc, alt_seed);
+          d.g("address").textContent = wallet.address;
+        }
+        d.g("seed-display").textContent = wallet.seed;
+        if (type === "tld") {
+          tld_account = new bns.TLDAccountManager(rpc, wallet);
+          mode = true;
+          d.g("domain").style.display = "none";
+        } else {
+          domain_account = new bns.DomainAccountManager(rpc, wallet);
+          d.g("tld").style.display = "none";
+        }
+        d.g("start").style.display = "none";
+        d.g("start-2").style.display = "block";
+        d.g("address").textContent = wallet.address;
+      }
+
+      function add_tld() {
+        let at = d.g("add-tld");
+        let ta = d.g("tld-addr");
+        const tv = ta.value.trim();
+        if (!at.value || !tv || !tv.startsWith("ban_") || tv.length !== 64) return;
+        tld_mapping[at.value] = tv;
+        at.value = "";
+        ta.value = "";
+        gen_tld_mapping_list();
+      }
+
+      function rem_tld() {
+        let rt = d.g("rem-tld");
+        delete tld_mapping[rt.value];
+        rt.value = "";
+        gen_tld_mapping_list();
+      }
+
+      async function resolve() {
+        let parts = d.g("resolve").value.split(".");
+        if (parts.length !== 2) return;
+        const name = parts[0];
+        const tld = parts[1];
+        if (!tld_mapping[tld]) return;
+        const resolver = new bns.Resolver(rpc2, tld_mapping);
+        const resolved = await resolver.resolve(name, tld);
+        d.g("r-name").textContent = resolved.name;
+        d.g("r-tld").textContent = `${resolved.tld} (.${tld})`;
+        d.g("r-burned").textContent = resolved.burned;
+        d.g("r-addr").textContent = resolved.resolved_address;
+        d.g("r-meta").textContent = resolved.metadata_hash;
+        d.g("r-hist").value = JSON.stringify(resolved.history, null, 2);
+      }
+
+      async function all_issued() {
+        let ul = d.g("all-issued");
+        ul.innerHTML = "";
+        const n = d.g("issue-tld").value;
+        if (!tld_mapping[n]) return;
+        const all = await (new bns.TLDAccount(rpc2, tld_mapping[n])).get_all_issued();
+        for (const domain of all) {
+          let li = d.createElement("LI");
+          let a = d.createElement("A");
+          a.href = `https://creeper.banano.cc/hash/${domain.history[0].block.hash}`;
+          a.textContent = domain.name;
+          li.appendChild(a);
+          ul.appendChild(li);
+        }
+      }
+
+      async function issue() {
+        const issue_hash = await tld_account.issue_domain_name(d.g("issue-name").value.trim(), d.g("issue-to").value.trim());
+        d.g("issue-link").textContent = "Issued! See explorer.";
+        d.g("issue-link").href = `https://creeper.banano.cc/hash/${issue_hash}`;
+      }
+
+      async function get_domain_account_domain() {
+        const resolver = new bns.Resolver(rpc2, tld_mapping);
+        domain_account_domain = resolver.resolve_backwards_ish(wallet.address, d.g("r-tld").value);
+        domain_account_domain = await domain_account_domain;
+        const { name, resolved_address, metadata_hash } = domain_account_domain;
+        console.log(domain_account_domain);
+        d.g("found-name").textContent = name
+        d.g("found-address").textContent = resolved_address;
+        d.g("found-metadata").textContent = metadata_hash;
+        d.g("domain-start").style.display = "none";
+        d.g("domain-actions").style.display = "block";
+      }
+
+      async function transfer() {
+        if (!domain_account_domain) return;
+        console.log(domain_account_domain.name, d.g("transfer-to").value.trim())
+        const transfer_hash = await domain_account.transfer_domain(domain_account_domain.name, d.g("transfer-to").value.trim());
+        d.g("transfer-link").textContent = "Transferred! See explorer.";
+        d.g("transfer-link").href = `https://creeper.banano.cc/hash/${transfer_hash}`;
+      }
+
+      function seed_proceed() {
+        d.g("start-2").style.display = "none";
+        d.g("main").style.display = "grid";
+      }
+      
+      //
+    </script>
+  </body>
+</html>

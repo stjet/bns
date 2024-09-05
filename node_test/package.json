@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "test": "cd ..; tsc -p .; cd node_test; node index.js"
+  },
+  "type": "module"
+}
+
