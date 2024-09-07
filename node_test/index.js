@@ -3,6 +3,9 @@ import * as fs from "fs";
 import * as crypto from "crypto";
 
 (async () => {
+  console.log("cid v0 to address", bns.cid_v0_to_address("QmbzTMo42KADUbLwc43KR9Se6aV3N6wfKqFbSr2qN1gJqR") === "ban_3kpq7d4kp9hd45jf8jh6zjztcewwfqaxafcr3b45whrxhce1sfinai3pk6w3");
+  console.log("address to cidv0", bns.address_to_cid_v0("ban_3kpq7d4kp9hd45jf8jh6zjztcewwfqaxafcr3b45whrxhce1sfinai3pk6w3") === "QmbzTMo42KADUbLwc43KR9Se6aV3N6wfKqFbSr2qN1gJqR");
+
   const test_seed = fs.readFileSync("./.secret", "utf-8").trim();
 
   let rpc = new bns.banani.RPC("https://kaliumapi.appditto.com/api"); //for sending cause it does work

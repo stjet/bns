@@ -9,16 +9,21 @@
       #main {
         grid-template-columns: auto auto;
       }
+      #main div {
+        max-width: 50vw;
+      }
       @media only screen and (max-width: 900px) {
         #main {
           grid-template-columns: auto;
+        }
+        #main div {
+          max-width: 100vw;
         }
       }
     </style>
   </head>
   <body>
-    <p>Intended to be purely a demo. Tested only on firefox.</p>
-    <span id="address"></span>
+    <a id="address" target="_blank"></a>
     <div id="start">
       <p>Click 'Create TLD Account' if you want to issue domain names, and click 'Create Domain Account' if you want to own a domain.</p>
       <button onclick="create('tld')">Create TLD Account</button>
@@ -33,7 +38,7 @@
         <li>In the second tab (TLD tab), click "Create TLD Account". Note down the seed and address.</li>
         <li>Send a Banano to your TLD Account's address</li>
         <li>On TLD tab, click "Receive"</li>
-        <li>On TLD tab, fill in the "Name (no '.', '"', max 32 chars [32 bytes])" field with "helloworld", fill in the Domain tab's address in the "Send to address:" field and click "Issue domain"</li>
+        <li>On TLD tab, fill in the "Name (no '.', '"', max 32 chars [32 bytes]):" field with "helloworld", fill in the Domain tab's address in the "Send to address:" field and click "Issue domain"</li>
         <li>Wait until it sends, and open the block explorer link in a new tab, noting the block hash</li>
         <li>Back to the Domain tab, fill in that block hash into the "Block hash of Domain Transfer:" input</li>
         <li>Then, in the right hand "Domain Resolver" panel add the TLD tab's address to the "TLD Mapping". Call it "demo"</li>
@@ -41,6 +46,7 @@
         <li>It should now say "Name: helloworld" right below "Domain Account Manager". Congratulations! You own a Banano domain name now</li>
         <li>Fill in your actual main Banano address in "Resolve to address:", and click "Declare address to resolve to", and anyone using your TLD can now turn "helloworld.demo" (or whatever they name your TLD) into your address</li>
       </ol>
+      <p>Special thanks to airtune and yusuf. <a href="https://github.com/stjet/bns/blob/master/bns_protocol.md">Protocol Specification</a></p>
     </div>
     <div id="start-2" style="display: none;">
       <p id="seed-display"></p>
@@ -65,13 +71,13 @@
       <div id="domain">
         <h2>Domain Account Manager</h2>
         <div id="domain-start">
-          <label for="r-d">Block hash of Domain Transfer:</label>
-          <input id="r-d" type="text"/>
+          <label for="rc-d">Block hash of Domain Transfer:</label>
+          <input id="rc-d" type="text"/>
           <br>
-          <button onclick="domain_account.receive_domain(d.g('r-d').value)">Receive domain</button>
+          <button onclick="domain_account.receive_domain(d.g('rc-d').value)">Receive domain</button>
           <br>
-          <label for="r-tld">TLD name (no dot):</label>
-          <input id="r-tld" type="text"/>
+          <label for="rc-tld">TLD name (no dot):</label>
+          <input id="rc-tld" type="text"/>
           <br>
           <button onclick="get_domain_account_domain()">Detect held domain name</button>
         </div>
@@ -83,27 +89,29 @@
             <br>
             Metadata hash: <span id="found-metadata"></span>
           </p>
-          <label for="r-mh">Metadata hash:</label>
-          <input id="r-mh" type="text"/>
+          <label for="d-mh">IPFS Cid v0:</label>
+          <input id="d-mh" type="text"/>
           <br>
-          <button onclick="domain_account.declare_domain_metadata(d.g('r-mh').value)">Declare metadata hash</button>
+          <button onclick="declare_metadata_hash()">Declare metadata hash</button>
           <br>
-          <label for="r-a">Resolve to address:</label>
-          <input id="r-a" type="text"/>
+          <label for="d-a">Resolve to address:</label>
+          <input id="d-a" type="text"/>
           <br>
-          <button onclick="domain_account.declare_domain_resolve_to(d.g('r-a').value)">Declare address to resolved to</button>
+          <button onclick="domain_account.declare_domain_resolve_to(d.g('d-a').value)">Declare address to resolved to</button>
           <br>
           <label for="transfer-to">Transfer domain to:</label>
           <input id="transfer-to" placeholder="ban_abc..." type="text"/>
           <br>
           <button onclick="transfer()">Transfer domain</button>
           <a id="transfer-link"></a>
+          <h3>Upload metadata to IPFS</h3>
+          //
         </div>
       </div>
       <div id="resolver">
         <h2>Domain Resolver</h2>
         <label for="resolve">Name:</label>
-        <input id="resolve" type="text" placeholder="nishina.test"/>
+        <input id="resolve" type="text" placeholder="nishina247.mictest"/>
         <br>
         <button onclick="resolve()">Resolve domain</button>
         <br>
@@ -189,20 +197,22 @@
         const alt_seed = d.g("alt-seed").value;
         if (alt_seed) {
           wallet = new bns.banani.Wallet(rpc, alt_seed);
-          d.g("address").textContent = wallet.address;
         }
         d.g("seed-display").textContent = wallet.seed;
         if (type === "tld") {
+          document.title = "TLD Account - BNS demo";
           tld_account = new bns.TLDAccountManager(rpc, wallet);
           mode = true;
           d.g("domain").style.display = "none";
         } else {
+          document.title = "Domain Account - BNS demo";
           domain_account = new bns.DomainAccountManager(rpc, wallet);
           d.g("tld").style.display = "none";
         }
         d.g("start").style.display = "none";
         d.g("start-2").style.display = "block";
         d.g("address").textContent = wallet.address;
+        d.g("address").href = `https://creeper.banano.cc/account/${d.g("address").textContent}`;
       }
 
       function add_tld() {
@@ -223,6 +233,10 @@
         gen_tld_mapping_list();
       }
 
+      function get_cid_v0_from_public_key(public_key) {
+        return bns.address_to_cid_v0(bns.banani.get_address_from_public_key(public_key));
+      }
+
       async function resolve() {
         let parts = d.g("resolve").value.split(".");
         if (parts.length !== 2) return;
@@ -232,10 +246,12 @@
         const resolver = new bns.Resolver(rpc2, tld_mapping);
         const resolved = await resolver.resolve(name, tld);
         d.g("r-name").textContent = resolved.name;
+        console.log(resolved.tld)
         d.g("r-tld").textContent = `${resolved.tld} (.${tld})`;
         d.g("r-burned").textContent = resolved.burned;
         d.g("r-addr").textContent = resolved.resolved_address;
-        d.g("r-meta").textContent = resolved.metadata_hash;
+        const cid_v0 = resolved.metadata_hash ? get_cid_v0_from_public_key(resolved.metadata_hash) : "none";
+        d.g("r-meta").innerHTML = `${resolved.metadata_hash} (IPFS translation: <a href="https://ipfs.oversas.org/ipfs/${cid_v0}" target="_blank">${cid_v0}</a>)`;
         d.g("r-hist").value = JSON.stringify(resolved.history, null, 2);
       }
 
@@ -263,15 +279,25 @@
 
       async function get_domain_account_domain() {
         const resolver = new bns.Resolver(rpc2, tld_mapping);
-        domain_account_domain = resolver.resolve_backwards_ish(wallet.address, d.g("r-tld").value);
+        domain_account_domain = resolver.resolve_backwards_ish(wallet.address, d.g("rc-tld").value);
         domain_account_domain = await domain_account_domain;
         const { name, resolved_address, metadata_hash } = domain_account_domain;
         console.log(domain_account_domain);
         d.g("found-name").textContent = name
         d.g("found-address").textContent = resolved_address;
-        d.g("found-metadata").textContent = metadata_hash;
+        const cid_v0 = metadata_hash ? get_cid_v0_from_public_key(metadata_hash) : "none";
+        d.g("found-metadata").innerHTML = `${metadata_hash} (IPFS translation: <a href="https://ipfs.oversas.org/ipfs/${cid_v0}" target="_blank">${cid_v0}</a>)`;
         d.g("domain-start").style.display = "none";
         d.g("domain-actions").style.display = "block";
+      }
+
+      async function declare_metadata_hash() {
+        const cid_v0 = d.g('d-mh').value.trim();
+        const cid_address = bns.cid_v0_to_address(cid_v0);
+        console.log(cid_v0, cid_address);
+        console.log(bns.address_to_cid_v0(cid_address))
+        const metadata_hash = bns.banani.get_public_key_from_address(cid_address);
+        await domain_account.declare_domain_metadata(metadata_hash);
       }
 
       async function transfer() {

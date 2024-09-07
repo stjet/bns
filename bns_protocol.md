@@ -77,7 +77,7 @@ To convey metadata associated with a block. Can only be sent by Domain Accounts
 - Subtype: change
 - Representative: Hash of the metadata
 
-> Perhaps an encoded IPFS hash would be best?
+> Currently, it is recommended that this metadata hash be a translated IPFS v0 Cid, so metadata files should be hosted on IPFS. IPFS is not mandated by the protocol, and it is perfectly acceptable to use something that is not IPFS to store metadata and use a regular SHA-256 hash of the file. However, clients will likely only support finding IPFS metadata.
 
 ## Domain Resolver block
 
@@ -102,6 +102,7 @@ Domain metadata can be anything. However, in order for domain metadata to be eas
 {
   "domain": {
     //any arbitrary keys and values can be put here; the following are some examples
+    "description": "I love Banano?",
     "www": "https://example.com",
     "tor": "http://asdsadif23ifjskfjls9030dskfblahblah.onion",
     "eth": "0xbl8ahb8lah10blahblahblahblahblahblahblah5",
@@ -132,9 +133,21 @@ A TLD operator can use whatever system it wants for issuing domain names. Some i
 
 Also, for the convenience of the user (so they can do a Domain Resovler and Domain Transfer without needing to deposit more), TLDs are recommended to send 0.00120703011 Banano instead of the minimum 0.0012070301.
 
-## Domain owners
+## Domain owners / BNS wallets
 
-Domain owners will need some specialised software to manage domains. Generating/storing Domain Accounts, transferring domains, and setting/changing their resolved address are all simple. Changing domain metadata is a bit more complicated and probably involves IPFS. Possibly integrate into Bananostand?
+Domain owners will need some specialised software to manage domains. Generating/storing Domain Accounts, transferring domains, and setting/changing their resolved address are all simple. Changing domain metadata is a bit more complicated and involves uploading the metadata file to IPFS. The demo client supports converting IPFS Cid v0 into metadata hashes, and then declaring that metadata hash.
+
+## Non-BNS wallets
+
+Non-BNS wallets are regular Banano wallets like Kalium, Dagchat, Bananostand, etc, that will likely not add support for minting and managing BNS domains.
+
+However, they can still integrate BNS by keeping a user-editable mapping of TLDs to addresses, and then supporting domain -> address translation for sending Banano or changing representatives.
+
+## Metadata displayers
+
+A browser extension or website could be made to fetch the metadata of a domain from IPFS, and then display it (hopefully nicely).
+
+More advanced browser extensions can do things like displaying decentralised websites in the domain's metadata (eg, websites hosted on IPFS or Reticulum) when someone types in that domain in the address bar. They might also redirect to a regular (clearnet) website or a tor hidden service if the metadata requests.
 
 ## Buying/selling domains
 

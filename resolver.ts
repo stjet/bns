@@ -161,7 +161,7 @@ export class DomainAccount extends Account {
             return this.domain;
           }
         } else if (block.subtype === "change") {
-          this.domain.metadata_hash = block.representative;
+          this.domain.metadata_hash = get_public_key_from_address(block.representative);
           this.domain.history.push({
             type: "metadata",
             block,
