@@ -1,6 +1,6 @@
 {
   "name": "banani-bns",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "JS/TS library for the Banano cryptocurrency's currently unofficial Banano Name System (BNS)",
   "main": "main.js",
   "scripts": {

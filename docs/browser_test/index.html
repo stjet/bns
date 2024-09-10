@@ -12,6 +12,9 @@
       #main div {
         max-width: 50vw;
       }
+      .danger {
+        color: red;
+      }
       @media only screen and (max-width: 900px) {
         #main {
           grid-template-columns: auto;
@@ -67,6 +70,8 @@
         <br>
         <button onclick="issue()">Issue domain</button>
         <a id="issue-link"></a>
+        <br><br>
+        <button class="danger" onclick="freeze(true)">Freeze TLD</button>
       </div>
       <div id="domain">
         <h2>Domain Account Manager</h2>
@@ -104,8 +109,8 @@
           <br>
           <button onclick="transfer()">Transfer domain</button>
           <a id="transfer-link"></a>
-          <h3>Upload metadata to IPFS</h3>
-          //
+          <br><br>
+          <button class="danger" onclick="freeze(false)">Freeze domain</button>
         </div>
       </div>
       <div id="resolver">
@@ -279,11 +284,16 @@
 
       async function get_domain_account_domain() {
         const resolver = new bns.Resolver(rpc2, tld_mapping);
-        domain_account_domain = resolver.resolve_backwards_ish(wallet.address, d.g("rc-tld").value);
-        domain_account_domain = await domain_account_domain;
+        domain_account_domain = await resolver.resolve_backwards_ish(wallet.address, d.g("rc-tld").value);
+        let frozen = false;
+        if (domain_account_domain.history[domain_account_domain.history.length - 1].type === "freeze") {
+          alert("This domain is frozen! That means you can't do anything with it.");
+          frozen = true;
+        }
         const { name, resolved_address, metadata_hash } = domain_account_domain;
         console.log(domain_account_domain);
-        d.g("found-name").textContent = name
+        d.g("found-name").textContent = name;
+        if (frozen) d.g("found-name").classList.add("danger");
         d.g("found-address").textContent = resolved_address;
         const cid_v0 = metadata_hash ? get_cid_v0_from_public_key(metadata_hash) : "none";
         d.g("found-metadata").innerHTML = `${metadata_hash} (IPFS translation: <a href="https://ipfs.oversas.org/ipfs/${cid_v0}" target="_blank">${cid_v0}</a>)`;
@@ -306,6 +316,13 @@
         const transfer_hash = await domain_account.transfer_domain(domain_account_domain.name, d.g("transfer-to").value.trim());
         d.g("transfer-link").textContent = "Transferred! See explorer.";
         d.g("transfer-link").href = `https://creeper.banano.cc/hash/${transfer_hash}`;
+      }
+
+      async function freeze(is_tld) {
+        if (await prompt(`Are you sure you want to freeze the ${ is_tld ? "TLD" : "domain" }? This will mean you can no longer transfer it, change the resolved address, or the metadata hash. Respond 'I am super sure' to proceed.`).trim() === "I am super sure") {
+          is_tld ? await tld_account.freeze() : await domain_account.freeze();
+          alert(`The ${ is_tld ? "TLD" : "domain" } should now be frozen`);
+        }
       }
 
       function seed_proceed() {

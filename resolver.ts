@@ -1,10 +1,9 @@
-import type { RPC } from "banani";
+import type { Address, AccountHistoryRawRPC, RPC } from "banani";
 import { get_address_from_public_key, get_public_key_from_address, whole_to_raw } from "banani";
-
-import type { Address, AccountHistoryRawRPC } from "banani";
 
 import type { Domain, DomainTransfer } from "./types";
 import { decode_domain_name, encode_domain_name, LOG } from "./util";
+import { FREEZE_REP, TRANS_MAX, TRANS_MIN } from "./constants";
 
 class Account {
   readonly rpc: RPC;
@@ -27,6 +26,8 @@ class Account {
   }
 }
 
+
+
 export class TLDAccount extends Account {
   all_issued: Domain[];
 
@@ -42,9 +43,7 @@ export class TLDAccount extends Account {
       const { history } = await this.get_history_from_open(head_hash, 100);
       for (const block of history) {
         const amount = BigInt(block.amount ?? 0); //no amount if is change rep only
-        const min = whole_to_raw("0.0012070301");
-        const max = whole_to_raw("0.00120703011");
-        if (amount >= min && amount <= max) {
+        if (block.subtype === "send" && amount >= TRANS_MIN && amount <= TRANS_MAX) {
           const found_name = decode_domain_name(get_public_key_from_address(block.representative));
           //if already in issued, this one is invalid
           if (name === found_name) {
@@ -61,7 +60,8 @@ export class TLDAccount extends Account {
             };
           }
         }
-        if (block.hash === frontier_hash) {
+        //again, no else if because of block.hash === frontier_hash
+        if ((block.representative === FREEZE_REP && block.subtype === "change") || (block.hash === frontier_hash)) {
           return;
         }
       }
@@ -77,9 +77,7 @@ export class TLDAccount extends Account {
       const { history } = await this.get_history_from_open(head_hash, 100);
       for (const block of history) {
         const amount = BigInt(block.amount ?? 0); //no amount if change rep only
-        const min = whole_to_raw("0.0012070301");
-        const max = whole_to_raw("0.00120703011");
-        if (block.subtype === "send" && amount >= min && amount <= max) {
+        if (block.subtype === "send" && amount >= TRANS_MIN && amount <= TRANS_MAX) {
           const name = decode_domain_name(get_public_key_from_address(block.representative));
           //if already in issued, this one is invalid
           if (!issued[name]) {
@@ -97,10 +95,11 @@ export class TLDAccount extends Account {
           } else if (LOG) {
             console.log(`"${name}" already issued but TLD tried to issue again. Invalid.`);
           }
-          if (block.hash === frontier_hash) {
-            this.all_issued = Object.values(issued);
-            return this.all_issued;
-          }
+        }
+        //cannot be "else if" because of the block.hash === frontier_hash thing
+        if ((block.representative === FREEZE_REP && block.subtype === "change") || (block.hash === frontier_hash)) {
+          this.all_issued = Object.values(issued);
+          return this.all_issued;
         }
       }
       head_hash = history[history.length - 1].hash;
@@ -131,8 +130,6 @@ export class DomainAccount extends Account {
       const { history } = await this.get_history_from_open(head_hash, 1000) as AccountHistoryRawRPC;
       for (const block of history) {
         const amount = BigInt(block.amount ?? 0); //amount is 0 if change rep only, apparently
-        const min = whole_to_raw("0.0012070301");
-        const max = whole_to_raw("0.00120703011");
         if (block.height === "1") {
           //domain burned due to not being received as the opening block
           //? is in case fake domain
@@ -146,7 +143,7 @@ export class DomainAccount extends Account {
             type: "receive",
             block,
           });
-        } else if (block.subtype === "send" && amount >= min && amount <= max) {
+        } else if (block.subtype === "send" && amount >= TRANS_MIN && amount <= TRANS_MAX) {
           const name = decode_domain_name(get_public_key_from_address(block.representative));
           if (this.domain.name === name) {
             //domain is transferred away, this domain account no longer owns it
@@ -160,6 +157,12 @@ export class DomainAccount extends Account {
             });
             return this.domain;
           }
+        } else if (block.subtype === "change" && block.representative === FREEZE_REP) {
+          this.domain.history.push({
+            type: "freeze",
+            block,
+          });
+          return this.domain;
         } else if (block.subtype === "change") {
           this.domain.metadata_hash = get_public_key_from_address(block.representative);
           this.domain.history.push({
@@ -167,7 +170,6 @@ export class DomainAccount extends Account {
             block,
             metadata_hash: this.domain.metadata_hash,
           });
-          //
         } else if (block.subtype === "send" && amount === 4224n) {
           this.domain.resolved_address = get_address_from_public_key(block.link);
           this.domain.history.push({
@@ -214,7 +216,8 @@ export class Resolver {
       const transfer_block = await this.rpc.get_block_info(transfer_hash);
       const domain_name = decode_domain_name(get_public_key_from_address(transfer_block.contents.representative));
     let domain = await this.resolve(domain_name, tld);
-    const last_transfer = domain.history.reverse().find((b): b is DomainTransfer => b.type === "transfer");
+    //.reverse() mutates the original array, evil bastards!
+    const last_transfer = domain?.history.slice().reverse().find((b): b is DomainTransfer => b.type === "transfer");
     if (last_transfer.to === domain_account_address) return domain;
   }
 }

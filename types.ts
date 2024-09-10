@@ -1,7 +1,7 @@
 import type { Address, AccountHistoryRawBlock } from "banani";
 
 export interface DomainBlock {
-  type: string;
+  type: "transfer" | "receive" | "metadata" | "resolver" | "freeze";
   block: AccountHistoryRawBlock;
 }
 
@@ -24,7 +24,11 @@ export interface DomainResolver extends DomainBlock {
   resolved_address: Address;
 }
 
-export type DomainBlocks = DomainTransfer | DomainReceive | DomainMetadata | DomainResolver;
+export interface DomainFreeze extends DomainBlock {
+  type: "freeze";
+}
+
+export type DomainBlocks = DomainTransfer | DomainReceive | DomainMetadata | DomainResolver | DomainFreeze;
 
 export interface Domain {
   tld: Address;

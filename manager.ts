@@ -4,6 +4,7 @@ import { get_address_from_public_key, raw_to_whole, whole_to_raw, Wallet } from 
 import type { Domain } from "./types";
 import { DomainAccount, TLDAccount } from "./resolver";
 import { decode_domain_name, encode_domain_name, LOG } from "./util";
+import { TRANS_MAX, TRANS_MIN, FREEZE_REP, FREEZE_PUB_KEY } from "./constants";
 
 export class TLDAccountManager extends TLDAccount {
   wallet: Wallet;
@@ -20,6 +21,11 @@ export class TLDAccountManager extends TLDAccount {
     //
     //this.all_issued.push(domain_name);
     return block_hash;
+  }
+
+  async freeze() {
+    await this.wallet.change_representative(FREEZE_REP);
+    //
   }
 
   //ideally tld starts out with say, 100 Banano to open with, and never needs to receive anything ever again. 100 Banano is over for over 80k domain issuances.
@@ -39,7 +45,7 @@ export class DomainAccountManager extends DomainAccount {
     this.domain = domain;
   }
 
-  async receive_domain(receive_hash: string, allow_burning?: boolean) {
+  async receive_domain(receive_hash: string, tld?: Address, allow_burning?: boolean) {
     let burning = false;
     const { history } = await this.rpc.get_account_history(this.address, 1);
     if (history.length > 1 && !allow_burning) {
@@ -47,32 +53,34 @@ export class DomainAccountManager extends DomainAccount {
       throw new Error("`allow_burning` must be true in order to receive this domain");
     }
     const block_info = await this.rpc.get_block_info(receive_hash);
-    const min = whole_to_raw("0.0012070301");
-    const max = whole_to_raw("0.00120703011");
     const amount = BigInt(block_info.amount);
-    if (amount < min || amount > max) throw new Error("`receive_hash` is not a Domain Transfer block");
-    await this.wallet.receive(receive_hash);
+    if (amount < TRANS_MIN || amount > TRANS_MAX) throw new Error("`receive_hash` is not a Domain Transfer block");
+    await this.wallet.receive(receive_hash, undefined, tld);
     //
   }
 
   async transfer_domain(domain_name: string, to: Address): Promise<string> {
     const balance = (await this.wallet.get_account_info()).balance;
-    const min = whole_to_raw("0.0012070301");
-    const max = whole_to_raw("0.00120703011");
-    let send_amount = raw_to_whole(max);
-    if (max > BigInt(balance) && min <= BigInt(balance)) send_amount = raw_to_whole(BigInt(balance));
+    let send_amount = raw_to_whole(TRANS_MAX);
+    if (TRANS_MAX > BigInt(balance) && TRANS_MIN <= BigInt(balance)) send_amount = raw_to_whole(BigInt(balance));
     const block_hash = await this.wallet.send(to, send_amount, undefined, get_address_from_public_key(encode_domain_name(domain_name)));
     //
     return block_hash;
   }
 
   async declare_domain_metadata(metadata_hash: string) {
+    if (metadata_hash === FREEZE_PUB_KEY) throw new Error("A metadata hash of all 1s freezes the domain");
     await this.wallet.change_representative(get_address_from_public_key(metadata_hash));
     //
   }
 
   async declare_domain_resolve_to(address: Address) {
     await this.wallet.send(address, raw_to_whole(4224n));
+    //
+  }
+
+  async freeze() {
+    await this.wallet.change_representative(FREEZE_REP);
     //
   }
 }

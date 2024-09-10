@@ -1,3 +1,5 @@
+*Version 1.0.0 release-candidate*
+
 Very similar to [Airtune's Banano NFT protocol](https://github.com/Airtune/73-meta-tokens)
 
 In fact, though it is meant to be for domain names, it can actually be considered a sort of very limited NFT protocol.
@@ -69,13 +71,14 @@ Receives a Domain Transfer block. If not the opening block of the account, the r
 
 - Subtype: send
 - Link (send block hash): Hash of the Domain Transfer block
+- Representative: Can *optionally* be the TLD account in order to make resolving backwards easier
 
 ## Domain Metadata block
 
 To convey metadata associated with a block. Can only be sent by Domain Accounts
 
 - Subtype: change
-- Representative: Hash of the metadata
+- Representative: Hash of the metadata (**cannot be all 1s, then it is Domain Freeze**)
 
 > Currently, it is recommended that this metadata hash be a translated IPFS v0 Cid, so metadata files should be hosted on IPFS. IPFS is not mandated by the protocol, and it is perfectly acceptable to use something that is not IPFS to store metadata and use a regular SHA-256 hash of the file. However, clients will likely only support finding IPFS metadata.
 
@@ -87,12 +90,12 @@ To change the what address the domain resolves to
 - Change in balance: 4224 raw
 - Link (recepient): Banano address the domain should resolve to (typically the actual Banano address of the owner)
 
-## Maybe: Domain Freeze block
+## Domain Freeze block
 
 All Domain Transfer blocks sent after this block are to be ignored. The domain becomes an "frozen domain". For a TLD account, prevents issuance of new domains for that TLD. For a Domain Account, prevents transfer of the domain currently held by it, as well as any change in resolving and metadata. Not the same as a burned domain for a Domain Account as frozen domains can still resolve to an address and have metadata, while burned domains cannot
 
 - Subtype: change
-- Representative: Pub key of all 0s
+- Representative: Pub key (in hexadecimal) of "451", followed by sixty-two 1s
 
 # Domain Metadata
 
@@ -126,6 +129,8 @@ A domain name cannot have the `.`, `\u0000`, or `"` characters in it.
 To resolve a domain to a Domain Account (after checking the domain name for validity), and to resolve into an address and some metadata, first a resolver needs to consult its mapping of TLD names to TLD Accounts. It should encode the utf-8 domain name and front pad it to 32 bytes (TLD name should not be included in the hash). Then, it should crawl the account, starting from height 1. It should keep crawling up the chain until it finds the first Domain Transfer whose representative matches the domain name's hash.
 
 The resolver should then go to the recipient of the Domain Transfer. If the opening block (height 1) is not a Domain Receive block for that Domain Transfer, then the resolver knows the domain has been burned, and the resolving process is over. The burned domain has no domain metadata or resolved address. If it does find the opening block is the Domain Receive block for that Domain Transfer, it should then crawl up the chain again, keeping note of any Domain Metadata or Domain Resolver blocks. Newer blocks replace the older ones. If it encounters a Domain Transfer block, it should discard the noted domain metadata and resolved address, and repeat. If it does not encounter a Domain Transfer block, and reaches the frontier (latest) block, then it should return the noted domain metadata and resolved address (or lack thereof).
+
+Resolving backwards is also possible, but slightly more complicated. In the resolved address, look for any receives or pending transactions of 4242 raw in order to find Domain Accounts. If the resolver know what TLD address the domain is supposed to be, great. If not, try finding out by looking at the representative of the opening block (Domain Receive) of the found Domain Account. From the opening block's corresponding send (Domain Transfer), the resolver can find the domain name. Then, resolve like normal since the resolver now has the TLD address and domain name. After resolving, the resolver must check to make sure that the found domain account actually owns the domain.
 
 ## TLD (Issuing domains)
 

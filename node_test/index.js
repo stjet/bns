@@ -13,6 +13,8 @@ import * as crypto from "crypto";
 
   let tld_wallet = new bns.banani.Wallet(rpc, test_seed);
 
+  console.log(await new bns.Resolver(rpc2, { "test": tld_wallet.address }).resolve("chicken", "test")); //freeze test
+
   console.log(await new bns.Resolver(rpc2, { "test": tld_wallet.address }).resolve_backwards_ish("ban_1119d44eg3fey3mxpk8mshn7gf5dfzsuiaz1ypoh5nqy8bxbao54zzc5rnka", "test"));
 
   let tld = new bns.TLDAccountManager(rpc, tld_wallet);
@@ -21,7 +23,7 @@ import * as crypto from "crypto";
 
   const rand_wallet = bns.banani.Wallet.gen_random_wallet(rpc);
 
-  const rand_name = `test${String(Math.random()).replaceAll(".", "")}`;
+  const rand_name = `rc-test${String(Math.random()).replaceAll(".", "")}`;
 
   const issue_hash = await tld.issue_domain_name(rand_name, rand_wallet.address);
 
@@ -31,7 +33,7 @@ import * as crypto from "crypto";
 
   await rand_dam.declare_domain_resolve_to("ban_3346kkobb11qqpo17imgiybmwrgibr7yi34mwn5j6uywyke8f7fnfp94uyps");
   
-  await rand_dam.declare_domain_metadata("1".repeat(64));
+  await rand_dam.declare_domain_metadata("6".repeat(64));
 
   await rand_dam.declare_domain_resolve_to("ban_1burnbabyburndiscoinferno111111111111111111111111111aj49sw3w");
 
@@ -43,8 +45,26 @@ import * as crypto from "crypto";
 
   await rand_dam2.receive_domain(transfer_hash);
 
-  await rand_dam2.declare_domain_metadata("0".repeat(64));
-  
+  await rand_dam2.declare_domain_metadata("2".repeat(64));
+
+  /*
+  //freeze test
+  await rand_dam2.freeze();
+
+  const rand_wallet3 = bns.banani.Wallet.gen_random_wallet(rpc);
+  console.log(rand_wallet3.seed);
+
+  const transfer_hash2 = await rand_dam2.transfer_domain(rand_name, rand_wallet3.address);
+
+  const rand_dam3 = new bns.DomainAccountManager(rpc, rand_wallet3);
+
+  await rand_dam3.receive_domain(transfer_hash2);
+
+  await rand_dam3.declare_domain_metadata("4".repeat(64));
+
+  await rand_dam3.declare_domain_resolve_to("ban_3fzpw7pb9xt64qhwi47oa47x9zj713fkshntdk5y7khmn54n18szb7ymybdt");
+  */
+
   //await rand_dam2.declare_domain_resolve_to("ban_1o7ija3mdbmpzt8qfnck583tn99fiupgbyzxtbk5h4g6j57a7rawge6yzxqp");
 
   const resolver = new bns.Resolver(rpc2, { "test": tld_wallet.address });

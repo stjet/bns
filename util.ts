@@ -52,10 +52,12 @@ export function base58_to_hex(base58: string): string {
   return uint8array_to_hex(bigint_to_uint8array(bint, 34));
 }
 
+/** IPFS CID v0 to Banano address */
 export function cid_v0_to_address(cid_v0: string): Address {
   return get_address_from_public_key(base58_to_hex(cid_v0).slice(4));
 }
 
+/** Banano address to IPFS CID v0 */
 export function address_to_cid_v0(address: Address): string {
   return hex_to_base58("1220" + get_public_key_from_address(address));
 }
