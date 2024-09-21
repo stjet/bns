@@ -16,6 +16,7 @@ export class TLDAccountManager extends TLDAccount {
 
   //highly recommended to call `this.get_all_issued` first or otherwise populate `this.all_issued` in order to not issue a domain name that has already been issued already (the second issuance will be invalid and unrecognised)
   async issue_domain_name(domain_name: string, to: Address): Promise<string> {
+    domain_name = domain_name.toLowerCase();
     if (this.all_issued.some((domain) => domain.name === domain_name)) throw new Error("Cannot issue a domain name that is already issued");
     const block_hash = await this.wallet.send(to, "0.00120703011", undefined, get_address_from_public_key(encode_domain_name(domain_name)));
     //

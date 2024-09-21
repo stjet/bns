@@ -171,7 +171,9 @@
       const bns = window.bns;
 
       const rpc = new bns.banani.RPC("https://kaliumapi.appditto.com/api"); //for sending cause it does work
-      const rpc2 = new bns.banani.RPC("https://api.banano.trade/proxy", true); //for resolver cause it supports raw account history
+      //const rpc2 = new bns.banani.RPC("https://api.banano.trade/proxy", true); //for resolver cause it supports raw account history
+      //const rpc2 = new bns.banani.RPC("https://booster.dev-ptera.com/banano-rpc"); //for resolver cause it supports raw account history
+      const rpc2 = rpc;
 
       let wallet = bns.banani.Wallet.gen_random_wallet(rpc);
 

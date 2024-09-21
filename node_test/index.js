@@ -8,8 +8,9 @@ import * as crypto from "crypto";
 
   const test_seed = fs.readFileSync("./.secret", "utf-8").trim();
 
-  let rpc = new bns.banani.RPC("https://kaliumapi.appditto.com/api"); //for sending cause it does work
-  let rpc2 = new bns.banani.RPC("https://api.banano.trade/proxy", true); //for resolver cause it supports raw account history
+  const rpc = new bns.banani.RPC("https://kaliumapi.appditto.com/api"); //for sending cause it does work
+  //let rpc2 = new bns.banani.RPC("https://api.banano.trade/proxy", true); //for resolver cause it supports raw account history
+  const rpc2 = rpc;
 
   let tld_wallet = new bns.banani.Wallet(rpc, test_seed);
 

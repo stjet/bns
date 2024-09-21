@@ -195,6 +195,7 @@ export class Resolver {
   }
 
   async resolve(domain_name: string, tld: string): Promise<Domain | undefined> {
+    domain_name = domain_name.toLowerCase();
     if (!this.tld_mapping[tld]) throw new Error("No TLD Account found for that TLD");
     const tld_account = new TLDAccount(this.rpc, this.tld_mapping[tld]);
     let domain = await tld_account.get_specific(domain_name);

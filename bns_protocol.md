@@ -118,7 +118,7 @@ Domain metadata can be anything. However, in order for domain metadata to be eas
 
 # Domain name validity
 
-A domain name cannot have the `.`, `\u0000`, or `"` characters in it.
+A domain name cannot have the `.`, `\u0000`, or `"` characters in it. Domain names are all lowercase.
 
 > Maybe alphanumeric only?
 
@@ -126,7 +126,7 @@ A domain name cannot have the `.`, `\u0000`, or `"` characters in it.
 
 ## Resolving domains
 
-To resolve a domain to a Domain Account (after checking the domain name for validity), and to resolve into an address and some metadata, first a resolver needs to consult its mapping of TLD names to TLD Accounts. It should encode the utf-8 domain name and front pad it to 32 bytes (TLD name should not be included in the hash). Then, it should crawl the account, starting from height 1. It should keep crawling up the chain until it finds the first Domain Transfer whose representative matches the domain name's hash.
+To resolve a domain to a Domain Account (after checking the domain name for validity, and turning it lowercase), and to resolve into an address and some metadata, first a resolver needs to consult its mapping of TLD names to TLD Accounts. It should encode the utf-8 domain name and front pad it to 32 bytes (TLD name should not be included in the hash). Then, it should crawl the account, starting from height 1. It should keep crawling up the chain until it finds the first Domain Transfer whose representative matches the domain name's hash.
 
 The resolver should then go to the recipient of the Domain Transfer. If the opening block (height 1) is not a Domain Receive block for that Domain Transfer, then the resolver knows the domain has been burned, and the resolving process is over. The burned domain has no domain metadata or resolved address. If it does find the opening block is the Domain Receive block for that Domain Transfer, it should then crawl up the chain again, keeping note of any Domain Metadata or Domain Resolver blocks. Newer blocks replace the older ones. If it encounters a Domain Transfer block, it should discard the noted domain metadata and resolved address, and repeat. If it does not encounter a Domain Transfer block, and reaches the frontier (latest) block, then it should return the noted domain metadata and resolved address (or lack thereof).
 
