@@ -31,7 +31,7 @@
       <p>Click 'Create TLD Account' if you want to issue domain names, and click 'Create Domain Account' if you want to own a domain.</p>
       <button onclick="create('tld')">Create TLD Account</button>
       <button onclick="create('domain')">Create Domain Account</button>
-      <p>Enter an existing seed here:</p>
+      <p>Enter an existing seed here (accepts both BNS Seed Format and regular seeds):</p>
       <input id="alt-seed" type="text" placeholder="Then click the button above"/>
       <br><br>
       <h2>Quick Guide</h2>
@@ -52,7 +52,7 @@
       <p>Special thanks to airtune and yusuf. <a href="https://github.com/stjet/bns/blob/master/bns_protocol.md">Protocol Specification</a></p>
     </div>
     <div id="start-2" style="display: none;">
-      <p id="seed-display"></p>
+      <p><span id="seed-display"></span> (in BNS Seed Format)</p>
       <button onclick="seed_proceed()">I have saved the seed (or haven't and don't care if I lose it)</button>
     </div>
     <div id="main" style="display: none;">
@@ -205,9 +205,13 @@
       function create(type) {
         const alt_seed = d.g("alt-seed").value;
         if (alt_seed) {
-          wallet = new bns.banani.Wallet(rpc, alt_seed);
+          if (bns.is_bns_seed_format(alt_seed)) {
+            wallet = new bns.banani.Wallet(rpc, bns.bns_seed_format_to_hex(alt_seed));
+          } else {
+            wallet = new bns.banani.Wallet(rpc, alt_seed);
+          }
         }
-        d.g("seed-display").textContent = wallet.seed;
+        d.g("seed-display").textContent = bns.hex_to_bns_seed_format(wallet.seed);
         if (type === "tld") {
           document.title = "TLD Account - BNS demo";
           tld_account = new bns.TLDAccountManager(rpc, wallet);

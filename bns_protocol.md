@@ -1,4 +1,4 @@
-*Version 1.0.0 release-candidate*
+*Version 1.0.0 release-candidate 2*
 
 Very similar to [Airtune's Banano NFT protocol](https://github.com/Airtune/73-meta-tokens)
 
@@ -142,9 +142,11 @@ Also, for the convenience of the user (so they can do a Domain Resovler and Doma
 
 Domain owners will need some specialised software to manage domains. Generating/storing Domain Accounts, transferring domains, and setting/changing their resolved address are all simple. Changing domain metadata is a bit more complicated and involves uploading the metadata file to IPFS. The demo client supports converting IPFS Cid v0 into metadata hashes, and then declaring that metadata hash.
 
+As BNS domains can be burned if sent/received improperly, **it is important that TLD and Domain Accounts are not imported into regular wallets** which may do things like auto-receive. As such, it is recommended that BNS wallets (and wallet-like software) generate seeds for TLD and Domain Accounts in a unique (that is, not 64 hex characters) format, so that those seeds cannot be easily imported into regular wallets by uninformed users. Obviously, BNS wallets should also accept that unique seed format. Arbitrarily, because base32 is annoying, the recommended unique seed format is a simple change of the hex characters 0-9 to g-p and A-F to q-v. This will be called the "BNS Seed Format", or the "BSF Hex".
+
 ## Non-BNS wallets
 
-Non-BNS wallets are regular Banano wallets like Kalium, Dagchat, Bananostand, etc, that will likely not add support for minting and managing BNS domains.
+Non-BNS wallets are regular Banano wallets like Kalium, Dagchat, Bananostand, Banano Keeper, etc, that will likely not add support for minting and managing BNS domains.
 
 However, they can still integrate BNS by keeping a user-editable mapping of TLDs to addresses, and then supporting domain -> address translation for sending Banano or changing representatives.
 

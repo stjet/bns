@@ -32,6 +32,25 @@ export function hex_to_base58(hex: string): string {
   return base58.split("").reverse().join("");
 }
 
+//see the "Domain owners / BNS wallets" section of the bns protocol specification for an explanation of what the "bns seed format" is
+
+export const HEX_CHARS = "0123456789ABCDEF";
+
+export const BSF_HEX_CHARS = "ghijklmnopqrstuv";
+
+export function hex_to_bns_seed_format(hex: string): string {
+  return hex.split("").map((c) => BSF_HEX_CHARS[HEX_CHARS.indexOf(c.toUpperCase())]).join("");
+}
+
+export function bns_seed_format_to_hex(bsf_hex: string): string {
+  return bsf_hex.split("").map((c) => HEX_CHARS[BSF_HEX_CHARS.indexOf(c.toLowerCase())]).join("");
+}
+
+//doesn't check length
+export function is_bns_seed_format(maybe_bsf_hex: string): boolean {
+  return maybe_bsf_hex.split("").every((c) => BSF_HEX_CHARS.includes(c.toLowerCase()));
+}
+
 //lmao
 export function bigint_to_uint8array(bint: bigint, len: number): Uint8Array {
   let uint8array: Uint8Array = new Uint8Array(len);
