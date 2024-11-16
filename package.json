@@ -1,12 +1,12 @@
 {
   "name": "banani-bns",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "JS/TS library for the Banano cryptocurrency's currently unofficial Banano Name System (BNS)",
   "main": "main.js",
   "scripts": {
     "compile": "tsc -p .",
     "docs": "typedoc --name bns --entryPoints ./main.ts && echo bns.prussia.dev > ./docs/CNAME && cp -r ./browser_test ./docs/browser_test && cp ./bns-browser.js ./docs/bns-browser.js",
-    "browser": "esbuild browser-main.ts --bundle --minify --keep-names --drop-labels=NODE --outfile=bns-browser.js",
+    "browser": "esbuild browser-main.ts --bundle --minify --keep-names --drop-labels=NODE --legal-comments=none --outfile=bns-browser.js",
     "build": "npm run compile && npm run docs && npm run browser",
     "diff": "git diff --cached -- *.{ts,md,json} 'browser_test/index.html' 'node_test/index.js'"
   },

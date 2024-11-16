@@ -36,11 +36,11 @@ export class TLDAccount extends Account {
     this.all_issued = [];
   }
 
-  async get_specific(name: string): Promise<Domain | undefined> {
+  async get_specific(name: string, crawl_size: number = 500): Promise<Domain | undefined> {
     const [open_hash, frontier_hash] = await this.get_open_and_frontier();
     let head_hash = open_hash;
     while (true) {
-      const { history } = await this.get_history_from_open(head_hash, 100);
+      const { history } = await this.get_history_from_open(head_hash, crawl_size);
       for (const block of history) {
         const amount = BigInt(block.amount ?? 0); //no amount if is change rep only
         if (block.subtype === "send" && amount >= TRANS_MIN && amount <= TRANS_MAX) {
@@ -69,12 +69,12 @@ export class TLDAccount extends Account {
     }
   }
 
-  async get_all_issued(): Promise<Domain[]> {
+  async get_all_issued(crawl_size: number = 500): Promise<Domain[]> {
     const [open_hash, frontier_hash] = await this.get_open_and_frontier();
     let head_hash = open_hash;
     let issued: Record<string, Domain> = {};
     while (true) {
-      const { history } = await this.get_history_from_open(head_hash, 100);
+      const { history } = await this.get_history_from_open(head_hash, crawl_size);
       for (const block of history) {
         const amount = BigInt(block.amount ?? 0); //no amount if change rep only
         if (block.subtype === "send" && amount >= TRANS_MIN && amount <= TRANS_MAX) {
@@ -115,7 +115,7 @@ export class DomainAccount extends Account {
     this.domain = domain;
   }
 
-  async crawl(): Promise<Domain> {
+  async crawl(crawl_size = 500): Promise<Domain> {
     let open_hash, frontier_hash;
     try {
       [open_hash, frontier_hash] = await this.get_open_and_frontier();
@@ -127,7 +127,7 @@ export class DomainAccount extends Account {
     }
     let head_hash = open_hash;
     while (true) {
-      const { history } = await this.get_history_from_open(head_hash, 1000) as AccountHistoryRawRPC;
+      const { history } = await this.get_history_from_open(head_hash, crawl_size) as AccountHistoryRawRPC;
       for (const block of history) {
         const amount = BigInt(block.amount ?? 0); //amount is 0 if change rep only, apparently
         if (block.height === "1") {
@@ -194,29 +194,29 @@ export class Resolver {
     this.tld_mapping = tld_mapping;
   }
 
-  async resolve(domain_name: string, tld: string): Promise<Domain | undefined> {
+  async resolve(domain_name: string, tld: string, crawl_size = 500): Promise<Domain | undefined> {
     domain_name = domain_name.toLowerCase();
     if (!this.tld_mapping[tld]) throw new Error("No TLD Account found for that TLD");
     const tld_account = new TLDAccount(this.rpc, this.tld_mapping[tld]);
-    let domain = await tld_account.get_specific(domain_name);
+    let domain = await tld_account.get_specific(domain_name, crawl_size);
     if (!domain) return domain;
     while (true) {
       const current_domain_account = (domain.history[domain.history.length - 1] as DomainTransfer).to;
       const domain_account = new DomainAccount(this.rpc, current_domain_account, domain);
       const old_l = domain.history.length;
-      domain = await domain_account.crawl();
+      domain = await domain_account.crawl(crawl_size);
       if (domain.history[domain.history.length - 1].type !== "transfer" || domain.burned || old_l === domain.history.length) break; //if length unchanged, means transfer unreceived
     }
     return domain;
   }
 
   //see what domain a domain account (currently) has
-  async resolve_backwards_ish(domain_account_address: Address, tld: string): Promise<Domain | undefined> {
-      const open_hash = (await this.rpc.get_account_info(domain_account_address, true)).open_block;
-      const transfer_hash = (await this.rpc.get_block_info(open_hash)).contents.link;
-      const transfer_block = await this.rpc.get_block_info(transfer_hash);
-      const domain_name = decode_domain_name(get_public_key_from_address(transfer_block.contents.representative));
-    let domain = await this.resolve(domain_name, tld);
+  async resolve_backwards_ish(domain_account_address: Address, tld: string, crawl_size = 500): Promise<Domain | undefined> {
+    const open_hash = (await this.rpc.get_account_info(domain_account_address, true)).open_block;
+    const transfer_hash = (await this.rpc.get_block_info(open_hash)).contents.link;
+    const transfer_block = await this.rpc.get_block_info(transfer_hash);
+    const domain_name = decode_domain_name(get_public_key_from_address(transfer_block.contents.representative));
+    let domain = await this.resolve(domain_name, tld, crawl_size);
     //.reverse() mutates the original array, evil bastards!
     const last_transfer = domain?.history.slice().reverse().find((b): b is DomainTransfer => b.type === "transfer");
     if (last_transfer.to === domain_account_address) return domain;
