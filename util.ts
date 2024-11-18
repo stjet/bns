@@ -15,7 +15,7 @@ export function encode_domain_name(domain_name: string): string {
 }
 
 export function decode_domain_name(encoded_domain_name: string): string {
-  return (new TextDecoder()).decode(hex_to_uint8array(encoded_domain_name)).replaceAll("\u0000", "");
+  return (new TextDecoder()).decode(hex_to_uint8array(encoded_domain_name)).replace(/\u0000/g, "");
 }
 
 const BASE58_CHARS = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
