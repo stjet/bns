@@ -1,5 +1,5 @@
 *.js
-!node_test/index.js
+!node_test/*.js
 !bns-browser.js
 !docs/*/*.js
 node_modules/
