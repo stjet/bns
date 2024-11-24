@@ -109,25 +109,33 @@ export class TLDAccount extends Account {
 
 export class DomainAccount extends Account {
   domain?: Domain;
+  rpc_calls: number;
+  max_rpc_calls?: number;
 
-  constructor(rpc: RPC, address: Address, domain?: Domain) {
+  constructor(rpc: RPC, address: Address, domain?: Domain, max_rpc_calls?: number) {
     super(rpc, address);
     this.domain = domain;
+    this.max_rpc_calls = max_rpc_calls;
+    this.rpc_calls = 0;
   }
 
   async crawl(crawl_size = 500): Promise<Domain> {
     let open_hash, frontier_hash;
     try {
       [open_hash, frontier_hash] = await this.get_open_and_frontier();
+      this.rpc_calls += 1;
     } catch {
       if (LOG) {
         console.log("Not yet received");
       }
       return this.domain;
     }
+    if (this.rpc_calls === this.max_rpc_calls) throw new Error("Max RPC calls reached");
     let head_hash = open_hash;
     while (true) {
       const { history } = await this.get_history_from_open(head_hash, crawl_size) as AccountHistoryRawRPC;
+      this.rpc_calls += 1;
+      if (this.rpc_calls === this.max_rpc_calls) throw new Error("Max RPC calls reached");
       for (const block of history) {
         const amount = BigInt(block.amount ?? 0); //amount is 0 if change rep only, apparently
         if (block.height === "1") {
@@ -188,10 +196,12 @@ export class DomainAccount extends Account {
 export class Resolver {
   readonly rpc: RPC;
   tld_mapping: Record<string, Address>;
+  max_rpc_calls_after_tld?: number;
 
-  constructor(rpc: RPC, tld_mapping: Record<string, Address>) {
+  constructor(rpc: RPC, tld_mapping: Record<string, Address>, max_rpc_calls_after_tld?: number) {
     this.rpc = rpc;
     this.tld_mapping = tld_mapping;
+    this.max_rpc_calls_after_tld = max_rpc_calls_after_tld;
   }
 
   async resolve(domain_name: string, tld: string, crawl_size = 500): Promise<Domain | undefined> {
@@ -200,11 +210,13 @@ export class Resolver {
     const tld_account = new TLDAccount(this.rpc, this.tld_mapping[tld]);
     let domain = await tld_account.get_specific(domain_name, crawl_size);
     if (!domain) return domain;
+    let max_rpc_calls_after_tld = this.max_rpc_calls_after_tld;
     while (true) {
       const current_domain_account = (domain.history[domain.history.length - 1] as DomainTransfer).to;
-      const domain_account = new DomainAccount(this.rpc, current_domain_account, domain);
+      const domain_account = new DomainAccount(this.rpc, current_domain_account, domain, max_rpc_calls_after_tld);
       const old_l = domain.history.length;
       domain = await domain_account.crawl(crawl_size);
+      max_rpc_calls_after_tld -= domain_account.rpc_calls;
       if (domain.history[domain.history.length - 1].type !== "transfer" || domain.burned || old_l === domain.history.length) break; //if length unchanged, means transfer unreceived
     }
     return domain;
