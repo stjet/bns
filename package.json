@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "compile": "tsc -p .",
-    "docs": "typedoc --name bns --entryPoints ./main.ts && echo bns.prussia.dev > ./docs/CNAME && cp -r ./browser_test ./docs/browser_test && cp ./bns-browser.js ./docs/bns-browser.js",
+    "docs": "typedoc --name bns --entryPoints ./main.ts && echo bns.prussia.dev > ./docs/CNAME && cp -r ./wallet ./docs/wallet && cp -r ./browser_test ./docs/browser_test && cp ./bns-browser.js ./docs/bns-browser.js",
     "browser": "esbuild browser-main.ts --bundle --minify --keep-names --drop-labels=NODE --legal-comments=none --outfile=bns-browser.js",
     "build": "npm run compile && npm run docs && npm run browser",
     "diff": "git diff --cached -- *.{ts,md,json} 'browser_test/index.html' 'node_test/index.js'"
@@ -16,6 +16,6 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "banani": "^1.0.4"
+    "banani": "^1.0.7"
   }
 }

@@ -3,5 +3,6 @@
 !bns-browser.js
 !docs/*/*.js
 node_modules/
+ts_test/node_modules
 .env
 .secret
