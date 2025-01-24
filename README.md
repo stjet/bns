@@ -1,4 +1,4 @@
-See the [protocol specification](bns_protocol.md), [docs](https://bns.prussia.dev) or [demo](https://bns.prussia.dev/browser_test)
+See the [protocol specification](bns_protocol.md), [docs](https://bns.prussia.dev) or [web wallet / demo](https://bns.prussia.dev/wallet)
 
 ## Installing
 

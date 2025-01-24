@@ -320,10 +320,17 @@
 
       async function transfer() {
         if (!domain_account_domain) return;
-        console.log(domain_account_domain.name, d.g("transfer-to").value.trim())
-        const transfer_hash = await domain_account.transfer_domain(domain_account_domain.name, d.g("transfer-to").value.trim());
-        d.g("transfer-link").textContent = "Transferred! See explorer.";
-        d.g("transfer-link").href = `https://creeper.banano.cc/hash/${transfer_hash}`;
+        const transfer_to = d.g("transfer-to").value.trim();
+        console.log(domain_account_domain.name, transfer_to);
+        try {
+          await rpc.get_account_info(transfer_to);
+          alert("If you transfer to an already opened account the domain will be burned, so this wallet will not let you do that. Burn the account normally, man.");
+        } catch (_) {
+          //probably unopened account
+          const transfer_hash = await domain_account.transfer_domain(domain_account_domain.name, transfer_to);
+          d.g("transfer-link").textContent = "Transferred! See explorer.";
+          d.g("transfer-link").href = `https://creeper.banano.cc/hash/${transfer_hash}`;
+        }
       }
 
       async function freeze(is_tld) {
