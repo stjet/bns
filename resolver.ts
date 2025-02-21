@@ -1,8 +1,8 @@
 import type { Address, AccountHistoryRawRPC, RPC } from "banani";
-import { get_address_from_public_key, get_public_key_from_address, whole_to_raw } from "banani";
+import { get_address_from_public_key, get_public_key_from_address } from "banani";
 
 import type { Domain, DomainTransfer } from "./types";
-import { decode_domain_name, encode_domain_name, LOG } from "./util";
+import { decode_domain_name, LOG } from "./util";
 import { FREEZE_REP, TRANS_MAX, TRANS_MIN } from "./constants";
 
 class Account {
@@ -120,6 +120,7 @@ export class DomainAccount extends Account {
   }
 
   async crawl(crawl_size = 500): Promise<Domain> {
+    if (!this.domain) throw new Error("`domain` property for DomainAccount not initialised before calling `crawl()`");
     let open_hash, frontier_hash;
     try {
       [open_hash, frontier_hash] = await this.get_open_and_frontier();
@@ -212,11 +213,12 @@ export class Resolver {
     if (!domain) return domain;
     let max_rpc_calls_after_tld = this.max_rpc_calls_after_tld;
     while (true) {
-      const current_domain_account = (domain.history[domain.history.length - 1] as DomainTransfer).to;
-      const domain_account = new DomainAccount(this.rpc, current_domain_account, domain, max_rpc_calls_after_tld);
+      const current_domain_account: Address = (domain.history[domain.history.length - 1] as DomainTransfer).to;
+      const domain_account: DomainAccount = new DomainAccount(this.rpc, current_domain_account, domain, max_rpc_calls_after_tld);
       const old_l = domain.history.length;
       domain = await domain_account.crawl(crawl_size);
-      max_rpc_calls_after_tld -= domain_account.rpc_calls;
+      if (!domain) throw new Error(`Failed to crawl domain while resolving: ${current_domain_account}`);
+      if (max_rpc_calls_after_tld !== undefined) max_rpc_calls_after_tld -= domain_account.rpc_calls;
       if (domain.history[domain.history.length - 1].type !== "transfer" || domain.burned || old_l === domain.history.length) break; //if length unchanged, means transfer unreceived
     }
     return domain;
@@ -231,7 +233,7 @@ export class Resolver {
     let domain = await this.resolve(domain_name, tld, crawl_size);
     //.reverse() mutates the original array, evil bastards!
     const last_transfer = domain?.history.slice().reverse().find((b): b is DomainTransfer => b.type === "transfer");
-    if (last_transfer.to === domain_account_address) return domain;
+    if (last_transfer?.to === domain_account_address) return domain;
   }
 }
 

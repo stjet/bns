@@ -1,5 +1,5 @@
-//import * as bns from "../main.js";
-import * as bns from "banani-bns";
+import * as bns from "../main.js";
+//import * as bns from "banani-bns";
 
 const rpc = new bns.banani.RPC("https://kaliumapi.appditto.com/api");
 
